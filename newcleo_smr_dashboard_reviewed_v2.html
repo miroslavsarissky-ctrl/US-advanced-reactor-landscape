@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>US Advanced Reactor Landscape — Investor-Grade MI Dashboard, April 2026</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  :root {
+    --bg-deep:        #07141a;
+    --bg-surface:     #0f2128;
+    --bg-elevated:    #15303a;
+    --bg-input:       #0a1c22;
+    --border:         #1f3a44;
+    --border-subtle:  #14272f;
+    --accent-teal:    #00b4a6;
+    --accent-teal-2:  #1ed3c4;
+    --accent-orange:  #f26e22;
+    --accent-amber:   #f5a524;
+    --accent-green:   #22c55e;
+    --accent-purple:  #a855f7;
+    --accent-blue:    #38bdf8;
+    --accent-lead:    #94a3b8;
+    --text-primary:   #e6f2f3;
+    --text-secondary: #8fb0b6;
+    --text-muted:     #5e7c83;
+    --shadow:         0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  header {
+    background: linear-gradient(90deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    z-index: 1000;
+    position: relative;
+    box-shadow: var(--shadow);
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-mark {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent-teal) 0%, var(--accent-teal-2) 100%);
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-weight: 700; color: var(--bg-deep);
+    font-size: 18px; letter-spacing: -0.5px;
+  }
+  .brand-text h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; color: var(--text-primary); }
+  .brand-text p { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 2px; }
+  .header-stats { display: flex; gap: 28px; }
+  .stat { text-align: right; }
+  .stat-value { font-size: 22px; font-weight: 700; color: var(--accent-teal-2); line-height: 1; }
+  .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+  .dashboard { display: grid; grid-template-columns: 340px 1fr 320px; height: calc(100vh - 65px); }
+  aside {
+    background: var(--bg-surface); border-right: 1px solid var(--border);
+    padding: 20px; overflow-y: auto;
+  }
+  .right-panel {
+    background: var(--bg-surface); border-left: 1px solid var(--border);
+    padding: 20px 0 20px 0; overflow-y: auto;
+    display: flex; flex-direction: column;
+  }
+  .right-header {
+    padding: 0 20px 14px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 8px;
+  }
+  .right-header h3 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); font-weight: 600; margin-bottom: 4px;
+  }
+  .right-header .total {
+    font-size: 22px; font-weight: 700; color: var(--accent-teal-2); line-height: 1.1;
+  }
+  .right-header .total-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .list-section { padding: 0 0 14px 0; }
+  .list-section-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 20px 6px 20px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--text-muted); font-weight: 600;
+  }
+  .list-section-header .ls-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .list-section-header .ls-count {
+    margin-left: auto; font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+  }
+  .list-item {
+    display: flex; align-items: flex-start; gap: 9px;
+    padding: 8px 20px;
+    cursor: pointer; transition: background-color .12s;
+    border-left: 2px solid transparent;
+  }
+  .list-item:hover { background: var(--bg-elevated); }
+  .list-item.active {
+    background: var(--bg-elevated); border-left-color: var(--accent-teal);
+  }
+  .list-item .li-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    margin-top: 6px; flex-shrink: 0;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.04);
+  }
+  .li-square { border-radius: 2px !important; }
+  .list-item .li-body { flex: 1; min-width: 0; }
+  .list-item .li-name {
+    font-size: 12.5px; color: var(--text-primary); font-weight: 500;
+    line-height: 1.35; word-break: break-word;
+  }
+  .list-item .li-sub {
+    font-size: 11px; color: var(--text-muted);
+    margin-top: 2px; line-height: 1.35;
+    overflow: hidden; text-overflow: ellipsis;
+    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
+  }
+  .list-empty {
+    padding: 30px 20px; text-align: center;
+    color: var(--text-muted); font-size: 12px;
+  }
+  aside::-webkit-scrollbar, .right-panel::-webkit-scrollbar { width: 8px; }
+  aside::-webkit-scrollbar-track, .right-panel::-webkit-scrollbar-track { background: var(--bg-surface); }
+  aside::-webkit-scrollbar-thumb, .right-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .panel { margin-bottom: 22px; }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .panel h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); font-weight: 600; }
+  .search-box {
+    width: 100%; padding: 10px 14px;
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text-primary);
+    font-size: 13px; font-family: inherit;
+    transition: border-color .15s;
+  }
+  .search-box:focus { outline: none; border-color: var(--accent-teal); }
+  .search-box::placeholder { color: var(--text-muted); }
+  .filter-group { display: flex; flex-direction: column; gap: 6px; }
+  .filter {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 11px; background: var(--bg-input);
+    border: 1px solid var(--border); border-radius: 6px;
+    cursor: pointer; transition: all .15s;
+    font-size: 13px; user-select: none;
+    width: 100%; text-align: left; font-family: inherit; color: var(--text-primary);
+  }
+  .filter:hover { border-color: var(--text-muted); background: var(--bg-elevated); }
+  .filter.active { background: var(--bg-elevated); border-color: var(--accent-teal); }
+  .filter input { display: none; }
+  .filter-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 2px rgba(255,255,255,0.05); }
+  .filter-check {
+    width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0;
+    background: transparent; border: 1.5px solid var(--text-muted);
+    display: grid; place-items: center; transition: all .15s;
+  }
+  .filter.active .filter-check { background: var(--accent-teal); border-color: var(--accent-teal); }
+  .filter.active .filter-check::after {
+    content: ''; width: 4px; height: 8px;
+    border: solid var(--bg-deep); border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translate(-1px, -1px);
+  }
+  .filter-label { flex: 1; color: var(--text-primary); }
+  .filter-sub { font-size: 10px; color: var(--text-muted); margin-top: 1px; display: block; }
+  .filter-count {
+    font-size: 11px; color: var(--text-muted);
+    background: var(--bg-deep); padding: 2px 7px; border-radius: 10px;
+    font-variant-numeric: tabular-nums;
+    min-width: 26px; text-align: center;
+  }
+  .dot-vendor { background: var(--accent-teal); }
+  .dot-uc     { background: var(--accent-green); }
+  .dot-planned{ background: var(--accent-amber); }
+  .dot-candidate{ background: var(--accent-blue); }
+  .dot-lab    { background: var(--accent-purple); }
+  .dot-focal  { background: var(--accent-orange); }
+  .reset-btn {
+    width: 100%; padding: 9px;
+    background: var(--bg-input); border: 1px solid var(--border);
+    color: var(--text-secondary); border-radius: 6px;
+    font-size: 12px; font-family: inherit; cursor: pointer;
+    transition: all .15s;
+  }
+  .reset-btn:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
+  .source-card {
+    background: var(--bg-input); border: 1px solid var(--border-subtle);
+    border-radius: 6px; padding: 12px; font-size: 11px;
+    color: var(--text-secondary); line-height: 1.5;
+  }
+  .source-card a { color: var(--accent-teal-2); text-decoration: none; }
+  .source-card a:hover { text-decoration: underline; }
+  .map-container { position: relative; }
+  #map { height: 100%; width: 100%; background: var(--bg-deep); }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    background: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6) !important;
+  }
+  .leaflet-popup-content { margin: 14px 16px; font-size: 13px; line-height: 1.5; min-width: 240px; }
+  .leaflet-popup-close-button { color: var(--text-secondary) !important; padding: 8px !important; }
+  .leaflet-popup-close-button:hover { color: var(--text-primary) !important; }
+  .popup-type {
+    display: inline-block; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 1px;
+    padding: 2px 8px; border-radius: 4px;
+    margin-bottom: 6px; font-weight: 600;
+  }
+  .popup-type.vendor { background: rgba(0,180,166,0.15); color: var(--accent-teal-2); }
+  .popup-type.uc     { background: rgba(34,197,94,0.15);  color: var(--accent-green); }
+  .popup-type.planned{ background: rgba(245,165,36,0.15); color: var(--accent-amber); }
+  .popup-type.candidate{ background: rgba(56,189,248,0.15); color: var(--accent-blue); }
+  .popup-type.lab    { background: rgba(168,85,247,0.15); color: var(--accent-purple); }
+  .popup-type.focal  { background: rgba(242,110,34,0.15); color: var(--accent-orange); }
+  .popup-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 8px 0; }
+  .popup-tag {
+    font-size: 10px; padding: 2px 7px; border-radius: 3px;
+    background: var(--bg-input); border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  .popup-tag.fuel { color: var(--accent-teal-2); border-color: rgba(30, 211, 196, 0.3); }
+  .popup-tag.lead { color: var(--accent-lead); border-color: rgba(148, 163, 184, 0.4); }
+  .popup-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+  .popup-sub { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+  .popup-row { font-size: 12px; color: var(--text-secondary); padding: 3px 0; }
+  .popup-row b { color: var(--text-primary); font-weight: 500; }
+  .popup-actions { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-subtle); }
+  .popup-btn {
+    display: block; width: 100%; text-align: center; padding: 8px 10px;
+    background: var(--bg-input); border: 1px solid var(--border);
+    color: var(--accent-teal-2); border-radius: 5px;
+    text-decoration: none; font-size: 12px; font-weight: 500;
+    transition: all .15s;
+  }
+  .popup-btn:hover { background: var(--accent-teal); color: var(--bg-deep); border-color: var(--accent-teal); }
+  .popup-stack {
+    display: grid; grid-template-columns: 92px 1fr; gap: 3px 8px;
+    background: rgba(10, 28, 34, 0.75); border: 1px solid var(--border-subtle);
+    border-radius: 6px; padding: 8px; margin: 8px 0; font-size: 11px;
+  }
+  .popup-stack .k { color: var(--text-muted); }
+  .popup-stack .v { color: var(--text-secondary); }
+  .popup-meta { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-subtle); font-size: 11px; color: var(--text-muted); }
+  .popup-meta a { color: var(--accent-teal-2); text-decoration: none; }
+  .popup-meta a:hover { text-decoration: underline; }
+  .caveat-card {
+    background: rgba(242,110,34,0.10); border: 1px solid rgba(242,110,34,0.35);
+    color: var(--text-secondary); border-radius: 6px; padding: 10px 12px;
+    font-size: 11px; line-height: 1.5; margin-top: 10px;
+  }
+  .action-grid { display: grid; grid-template-columns: 1fr; gap: 6px; }
+  .mini-btn {
+    width: 100%; padding: 8px 10px; background: var(--bg-input); border: 1px solid var(--border);
+    color: var(--text-secondary); border-radius: 6px; font-size: 12px; font-family: inherit; cursor: pointer;
+    transition: all .15s; text-align: left;
+  }
+  .mini-btn:hover { border-color: var(--accent-teal); color: var(--accent-teal-2); background: var(--bg-elevated); }
+  .toast {
+    position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 900;
+    background: rgba(15,33,40,0.96); color: var(--text-primary); border: 1px solid var(--border);
+    padding: 9px 14px; border-radius: 999px; box-shadow: var(--shadow); font-size: 12px; opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .toast.show { opacity: 1; }
+
+  .leaflet-control-zoom a {
+    background: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+  }
+  .leaflet-control-zoom a:hover { background: var(--bg-elevated) !important; color: var(--accent-teal-2) !important; }
+  .leaflet-control-attribution {
+    background: rgba(15, 33, 40, 0.85) !important;
+    color: var(--text-muted) !important;
+    font-size: 10px !important;
+  }
+  .leaflet-control-attribution a { color: var(--accent-teal-2) !important; }
+  .marker-pin {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.9);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.7), 0 0 0 4px rgba(0,0,0,0.4);
+    transition: transform .12s;
+  }
+  .marker-pin.lab { width: 26px; height: 26px; border-radius: 4px; border-width: 2.5px; }
+  .marker-pin.focal { width: 28px; height: 28px; border-width: 3px; animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(242,110,34,0.65), 0 2px 6px rgba(0,0,0,0.6); }
+    50%      { box-shadow: 0 0 0 12px rgba(242,110,34,0),    0 2px 6px rgba(0,0,0,0.6); }
+  }
+  .map-note {
+    position: absolute; top: 12px; right: 12px; z-index: 500;
+    background: rgba(15, 33, 40, 0.92);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 8px 12px; border-radius: 6px;
+    font-size: 11px; max-width: 320px;
+  }
+  .map-note b { color: var(--accent-teal-2); }
+  @media (max-width: 1200px) {
+    .dashboard { grid-template-columns: 320px 1fr; }
+    .right-panel { display: none; }
+  }
+  @media (max-width: 900px) {
+    .dashboard { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    aside { max-height: 40vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .header-stats { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">n</div>
+    <div class="brand-text">
+      <h1>US Advanced Reactor Landscape</h1>
+      <p>Vendors · Projects · National Labs · MI-verified · April 2026</p>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="stat"><div class="stat-value" id="stat-vendors">—</div><div class="stat-label">Vendor HQs</div></div>
+    <div class="stat"><div class="stat-value" id="stat-uc">—</div><div class="stat-label">Under Construction</div></div>
+    <div class="stat"><div class="stat-value" id="stat-planned">—</div><div class="stat-label">Planned</div></div>
+    <div class="stat"><div class="stat-value" id="stat-candidate">—</div><div class="stat-label">Candidate</div></div>
+    <div class="stat"><div class="stat-value" id="stat-labs">—</div><div class="stat-label">National Labs</div></div>
+    <div class="stat"><div class="stat-value" id="stat-visible">—</div><div class="stat-label">Visible</div></div>
+  </div>
+</header>
+
+<div class="dashboard">
+  <aside>
+    <div class="panel">
+      <h3>Search</h3>
+      <input type="text" class="search-box" id="search" placeholder="Vendor, design, project, city…">
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><h3>Marker type</h3></div>
+      <div class="filter-group">
+        <label class="filter active" data-group="layer" data-key="vendor">
+          <input type="checkbox" checked><span class="filter-dot dot-vendor"></span>
+          <span class="filter-label">Vendor HQ</span>
+          <span class="filter-count" id="count-vendor">0</span>
+        </label>
+        <label class="filter active" data-group="layer" data-key="uc">
+          <input type="checkbox" checked><span class="filter-dot dot-uc"></span>
+          <span class="filter-label">Construction / site work</span>
+          <span class="filter-count" id="count-uc">0</span>
+        </label>
+        <label class="filter active" data-group="layer" data-key="planned">
+          <input type="checkbox" checked><span class="filter-dot dot-planned"></span>
+          <span class="filter-label">Planned / announced</span>
+          <span class="filter-count" id="count-planned">0</span>
+        </label>
+        <label class="filter active" data-group="layer" data-key="candidate">
+          <input type="checkbox" checked><span class="filter-dot dot-candidate"></span>
+          <span class="filter-label">Candidate / considered</span>
+          <span class="filter-count" id="count-candidate">0</span>
+        </label>
+        <label class="filter active" data-group="layer" data-key="lab">
+          <input type="checkbox" checked><span class="filter-dot dot-lab"></span>
+          <span class="filter-label">National Lab</span>
+          <span class="filter-count" id="count-lab">0</span>
+        </label>
+        <label class="filter active" data-group="layer" data-key="focal">
+          <input type="checkbox" checked><span class="filter-dot dot-focal"></span>
+          <span class="filter-label">Aiken (SRS)</span>
+          <span class="filter-count" id="count-focal">0</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><h3>Technology (coolant)</h3></div>
+      <div class="filter-group">
+        <label class="filter active" data-group="tech" data-key="lw">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">Light water-cooled</span>
+          <span class="filter-count" id="count-lw">0</span>
+        </label>
+        <label class="filter active" data-group="tech" data-key="htgr">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">High-temperature gas</span>
+          <span class="filter-count" id="count-htgr">0</span>
+        </label>
+        <label class="filter active" data-group="tech" data-key="ms">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">Molten salt</span>
+          <span class="filter-count" id="count-ms">0</span>
+        </label>
+        <label class="filter active" data-group="tech" data-key="sodium">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">Sodium-cooled</span>
+          <span class="filter-count" id="count-sodium">0</span>
+        </label>
+        <label class="filter active" data-group="tech" data-key="lead">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">Lead / Lead-bismuth<span class="filter-sub">Fast spectrum, LFR family</span></span>
+          <span class="filter-count" id="count-lead">0</span>
+        </label>
+        <label class="filter active" data-group="tech" data-key="other">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">Other / TBD</span>
+          <span class="filter-count" id="count-other">0</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><h3>Assay / enrichment</h3></div>
+      <div class="filter-group">
+        <label class="filter active" data-group="fuel" data-key="leu">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">LEU<span class="filter-sub">Low-enriched uranium &lt;5% U-235</span></span>
+          <span class="filter-count" id="count-leu">0</span>
+        </label>
+        <label class="filter active" data-group="fuel" data-key="haleu">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">HALEU<span class="filter-sub">High-assay LEU 5–20% U-235</span></span>
+          <span class="filter-count" id="count-haleu">0</span>
+        </label>
+        <label class="filter active" data-group="fuel" data-key="tbd">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">TBD / Not stated</span>
+          <span class="filter-count" id="count-tbd-fuel">0</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><h3>Fuel form</h3></div>
+      <div class="filter-group">
+        <label class="filter active" data-group="form" data-key="oxide">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">Oxide / ceramic solid<span class="filter-sub">Typical LWR fuel; also FANCO initial fuel</span></span>
+          <span class="filter-count" id="count-form-oxide">0</span>
+        </label>
+        <label class="filter active" data-group="form" data-key="triso">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">TRISO<span class="filter-sub">Coated particle fuel</span></span>
+          <span class="filter-count" id="count-form-triso">0</span>
+        </label>
+        <label class="filter active" data-group="form" data-key="metal">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">Metallic / alloy<span class="filter-sub">Common fast-reactor fuel pathway</span></span>
+          <span class="filter-count" id="count-form-metal">0</span>
+        </label>
+        <label class="filter active" data-group="form" data-key="mfs">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">Molten fissile salt<span class="filter-sub">Liquid fuel</span></span>
+          <span class="filter-count" id="count-form-mfs">0</span>
+        </label>
+        <label class="filter active" data-group="form" data-key="tbd">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">TBD / Other</span>
+          <span class="filter-count" id="count-form-tbd">0</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><h3>Size class</h3></div>
+      <div class="filter-group">
+        <label class="filter active" data-group="size" data-key="micro">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">Microreactor<span class="filter-sub">≤ 20 MWe per unit</span></span>
+          <span class="filter-count" id="count-micro">0</span>
+        </label>
+        <label class="filter active" data-group="size" data-key="smr">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">SMR / small modular<span class="filter-sub">&gt;20–300 MWe per unit</span></span>
+          <span class="filter-count" id="count-smr">0</span>
+        </label>
+        <label class="filter active" data-group="size" data-key="large">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">Above-SMR<span class="filter-sub">&gt;300 MWe per unit</span></span>
+          <span class="filter-count" id="count-large">0</span>
+        </label>
+        <label class="filter active" data-group="size" data-key="nonpower">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">Research / non-power<span class="filter-sub">Thermal-only or test reactor</span></span>
+          <span class="filter-count" id="count-nonpower">0</span>
+        </label>
+        <label class="filter active" data-group="size" data-key="tbd">
+          <input type="checkbox" checked><span class="filter-check"></span>
+          <span class="filter-label">TBD / Unspecified</span>
+          <span class="filter-count" id="count-tbd-size">0</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <button class="reset-btn" id="reset-btn">Reset all filters</button>
+    </div>
+
+
+    <div class="panel">
+      <h3>Strategic filters</h3>
+      <div class="filter-group">
+        <button class="filter" data-strategic="fast"><span class="filter-label">Fast-spectrum systems</span></button>
+        <button class="filter" data-strategic="closed-cycle"><span class="filter-label">Closed fuel-cycle claims</span></button>
+        <button class="filter" data-strategic="haleu"><span class="filter-label">HALEU dependency</span></button>
+        <button class="filter" data-strategic="military"><span class="filter-label">Military / federal pilots</span></button>
+        <button class="filter" data-strategic="data-center"><span class="filter-label">Data-center / hyperscaler offtake</span></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Export visible data</h3>
+      <div class="action-grid">
+        <button class="mini-btn" id="export-csv">Download visible CSV</button>
+        <button class="mini-btn" id="export-json">Download visible JSON</button>
+        <button class="mini-btn" id="copy-visible">Copy visible marker list</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Quick views</h3>
+      <div class="filter-group">
+        <button class="filter" data-view="us"><span class="filter-label">Continental US</span></button>
+        <button class="filter" data-view="aiken"><span class="filter-label">Aiken / Southeast</span></button>
+        <button class="filter" data-view="inl"><span class="filter-label">INL cluster</span></button>
+        <button class="filter" data-view="oakridge"><span class="filter-label">Oak Ridge cluster</span></button>
+        <button class="filter" data-view="texas"><span class="filter-label">Texas projects</span></button>
+        <button class="filter" data-view="california"><span class="filter-label">California vendors</span></button>
+        <button class="filter" data-view="indiana"><span class="filter-label">Indiana (FANCO)</span></button>
+        <button class="filter" data-view="world"><span class="filter-label">Global</span></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Source</h3>
+      <div class="source-card">
+        Baseline compiled from <a href="https://www.eia.gov/todayinenergy/detail.php?id=67584" target="_blank" rel="noopener">EIA Today in Energy, 27 Apr 2026</a>, then layered with NRC ADAMS, DOE/national lab releases, company releases and selected industry press through April 2026.
+        <br><br><b style="color:var(--accent-teal-2);">Post-EIA updates implemented:</b> FANCO / EAGL-1, Hermes 2 groundbreaking, ACU MSR-1 MWt correction, Eielson AFB, and Janus candidate-site handling.
+        <div class="caveat-card"><b>Investor-use caveat:</b> This is a market-intelligence map, not a licensing-status register. Status reflects public announcements across different pathways, including NRC licensing, DOE authorization, military procurement, company announcements and early site selection. Capacity, fuel and deployment dates should be treated as developer-stated unless independently confirmed.</div>
+        <br>Coordinates are approximate to street address where available, otherwise city/site centroid. All markers link to Google Maps.
+      </div>
+    </div>
+  </aside>
+
+  <main class="map-container">
+    <div class="map-note">Combine <b>Marker type</b>, <b>Technology</b>, <b>Fuel</b>, <b>Size</b> and search to drill in. Click any marker for details.</div>
+    <div id="map"></div>
+    <div class="toast" id="toast">Copied</div>
+  </main>
+
+  <div class="right-panel">
+    <div class="right-header">
+      <h3>Visible markers</h3>
+      <div class="total" id="right-total">0</div>
+      <div class="total-sub">Click any item to fly to it</div>
+    </div>
+    <div id="visible-list"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+const TECH_LABEL = {
+  lw:'Light water', htgr:'HTGR', ms:'Molten salt',
+  sodium:'Sodium-cooled', lead:'Lead / Lead-bismuth', other:'Other'
+};
+const SIZE_LABEL = { micro:'Microreactor', smr:'SMR / small modular', large:'Above-SMR', nonpower:'Research / non-power', tbd:'TBD' };
+const ASSAY_LABEL = { leu:'LEU', haleu:'HALEU', tbd:'Assay TBD' };
+const FORM_LABEL = { oxide:'Oxide / ceramic', triso:'TRISO', metal:'Metallic / alloy', mfs:'Molten fissile salt', tbd:'Fuel form TBD' };
+const DEFAULT_SOURCE = { sourceType:'EIA baseline + public sources', sourceDate:'Verified April 2026', sourceUrl:'https://www.eia.gov/todayinenergy/detail.php?id=67584', confidence:'Medium', caveat:'Baseline item; verify individual project claims before investor use.' };
+const STATUS_LABEL = { vendor:'Vendor HQ', uc:'Construction / site work', planned:'Planned / announced', candidate:'Candidate / under consideration', lab:'National laboratory', focal:'Strategic anchor' };
+
+const VENDORS = [
+  // Light water-cooled
+  { name:"Deep Fission", design:"Gravity Nuclear Reactor", capacity:"15 MWe", fuel:"LEU",
+    addr:"2705 Webster Street, Berkeley, CA 94705", lat:37.8617, lon:-122.2585,
+    tech:['lw'], size:['micro'], fuelKeys:['leu'] },
+  { name:"GE Vernova Hitachi Nuclear Energy", design:"BWRX-300", capacity:"300 MWe", fuel:"LEU",
+    addr:"3901 Castle Hayne Road, Wilmington, NC 28402", lat:34.2887, lon:-77.8736,
+    tech:['lw'], size:['smr'], fuelKeys:['leu'] },
+  { name:"Hadron Energy, Inc.", design:"Hadron MMR (Halo)", capacity:"10 MWe", fuel:"HALEU",
+    addr:"Redwood City, CA (operations); New York, NY (corporate)", lat:37.4852, lon:-122.2364,
+    tech:['lw'], size:['micro'], fuelKeys:['haleu'] },
+  { name:"Last Energy", design:"PWR-20", capacity:"20 MWe", fuel:"LEU",
+    addr:"Washington, D.C. (HQ)", lat:38.9072, lon:-77.0369,
+    tech:['lw'], size:['micro'], fuelKeys:['leu'] },
+  { name:"NuScale Power", design:"NuScale Power Module", capacity:"77 MWe", fuel:"LEU",
+    addr:"6650 SW Redwood Lane, Suite 210, Portland, OR 97224", lat:45.4148, lon:-122.7665,
+    tech:['lw'], size:['smr'], fuelKeys:['leu'] },
+  { name:"REPLOY Power, Inc.", design:"Submerged Power System (SPS)", capacity:"300 MWe", fuel:"LEU",
+    addr:"7301 Seneca Falls Loop, Austin, TX 78739", lat:30.1878, lon:-97.8783,
+    tech:['lw'], size:['smr'], fuelKeys:['leu'] },
+  { name:"Rolls-Royce SMR Limited", design:"Rolls Royce SMR", capacity:"470 MWe", fuel:"LEU",
+    addr:"Manchester, UK (Rolls-Royce SMR HQ)", lat:53.4808, lon:-2.2426,
+    tech:['lw'], size:['large'], fuelKeys:['leu'] },
+  { name:"SMR, LLC (Holtec International)", design:"SMR-300", capacity:"300 MWe", fuel:"LEU",
+    addr:"1 Holtec Blvd., Krishna P. Singh Technology Campus, Camden, NJ 08104", lat:39.9259, lon:-75.1196,
+    tech:['lw'], size:['smr'], fuelKeys:['leu'] },
+  { name:"Westinghouse Electric Company", design:"AP300 (LW SMR) + eVinci (Other microreactor)", capacity:"330 / 0.2–5 MWe", fuel:"LEU / TRISO",
+    addr:"1000 Westinghouse Drive, Cranberry Township, PA 16066", lat:40.7244, lon:-80.0937,
+    tech:['lw','other'], size:['large','micro'], fuelKeys:['leu','triso'] },
+  // High-temperature gas
+  { name:"General Atomics – EMS", design:"EM2 / FMR", capacity:"265 / 44 MWe", fuel:"HALEU",
+    addr:"3550 General Atomics Court, San Diego, CA 92121", lat:32.8895, lon:-117.2349,
+    tech:['htgr'], size:['smr'], fuelKeys:['haleu'] },
+  { name:"NANO Nuclear Energy Inc.", design:"KRONOS MMR / LOKI MMR", capacity:"3.5–15 / 0.01–3 MWe", fuel:"TRISO",
+    addr:"10 Times Square, 30th Floor, New York, NY 10018", lat:40.7563, lon:-73.9866,
+    tech:['htgr'], size:['micro'], fuelKeys:['triso'] },
+  { name:"BWX Technologies, Inc.", design:"Project Pele Mobile Nuclear Reactor", capacity:"1.5 MWe", fuel:"TRISO",
+    addr:"800 Main Street, Lynchburg, VA 24504", lat:37.4110, lon:-79.1422,
+    tech:['htgr'], size:['micro'], fuelKeys:['triso'] },
+  { name:"Radiant Industries, Inc.", design:"Kaleidos", capacity:"1 MWe", fuel:"TRISO",
+    addr:"El Segundo, CA", lat:33.9192, lon:-118.4165,
+    tech:['htgr'], size:['micro'], fuelKeys:['triso'] },
+  { name:"Terra Innovatum (Global N.V.)", design:"SOLO Micro-Modular Reactor", capacity:"1 MWe", fuel:"LEU/HALEU",
+    addr:"Villa Nannini, Lucca, Italy (HQ)", lat:43.8429, lon:10.5027,
+    tech:['htgr'], size:['micro'], fuelKeys:['leu','haleu'] },
+  { name:"Valar Atomics", design:"Ward 250", capacity:"5 MWe", fuel:"TRISO",
+    addr:"El Segundo, CA (HQ)", lat:33.9210, lon:-118.4060,
+    tech:['htgr'], size:['micro'], fuelKeys:['triso'] },
+  { name:"X-energy LLC", design:"Xe-100 (SMR) + XENITH (microreactor)", capacity:"80 / 3–10 MWe", fuel:"TRISO",
+    addr:"9801 Washingtonian Boulevard, Gaithersburg, MD 20878", lat:39.1413, lon:-77.2009,
+    tech:['htgr'], size:['smr','micro'], fuelKeys:['triso'] },
+  // Molten salt
+  { name:"Kairos Power, LLC", design:"KP-FHR", capacity:"75 MWe", fuel:"TRISO",
+    addr:"707 W Tower Avenue, Alameda, CA 94501", lat:37.7775, lon:-122.3097,
+    tech:['ms'], size:['smr'], fuelKeys:['triso'] },
+  { name:"Natura Resources, LLC", design:"Natura MSR-1 + MSR-100", capacity:"1 / 100 MWe", fuel:"Molten Fissile Salt",
+    addr:"Abilene, TX", lat:32.4487, lon:-99.7331,
+    tech:['ms'], size:['micro','smr'], fuelKeys:['mfs'] },
+  { name:"TerraPower, LLC", design:"MCFR (molten salt) + Natrium (sodium)", capacity:"N/A / 345 MWe", fuel:"Molten Salt / HALEU",
+    addr:"15800 Northup Way, Bellevue, WA 98008", lat:47.6386, lon:-122.1387,
+    tech:['ms','sodium'], size:['smr'], fuelKeys:['mfs','haleu'] },
+  { name:"Terrestrial Energy USA Inc.", design:"Integral Molten Salt Reactor (IMSR)", capacity:"195 MWe", fuel:"LEU",
+    addr:"Charlotte, NC (US HQ)", lat:35.2271, lon:-80.8431,
+    tech:['ms'], size:['smr'], fuelKeys:['leu'] },
+  // Sodium-cooled
+  { name:"Aalo Atomics", design:"Aalo-1", capacity:"10 MWe", fuel:"LEU",
+    addr:"2025 Guadalupe Street, Austin, TX 78705", lat:30.2828, lon:-97.7424,
+    tech:['sodium'], size:['micro'], fuelKeys:['leu'] },
+  { name:"ARC Clean Technology", design:"ARC-100", capacity:"100 MWe", fuel:"HALEU",
+    addr:"Saint John, New Brunswick, Canada", lat:45.2733, lon:-66.0633,
+    tech:['sodium'], size:['smr'], fuelKeys:['haleu'] },
+  { name:"Oklo Inc.", design:"Aurora Powerhouse", capacity:"75 MWe", fuel:"HALEU",
+    addr:"3190 Coronado Drive, Santa Clara, CA 95054", lat:37.3847, lon:-121.9686,
+    tech:['sodium'], size:['smr'], fuelKeys:['haleu'] },
+  // Lead / Lead-bismuth — NEW
+  { name:"First American Nuclear (FANCO)", design:"EAGL-1", capacity:"240 MWe per unit (typical 6-reactor cluster)", fuel:"HALEU dioxide initially; lead-bismuth fast-spectrum system; closed-cycle claims developer-stated",
+    addr:"Carmel, IN (HQ being established 2025–2026); originally Richland, WA. Mfg / energy park: Indiana, site TBD.",
+    lat:39.9784, lon:-86.1180,
+    tech:['lead'], size:['smr'], fuelKeys:['haleu'], formKeys:['oxide'],
+    sourceType:'Company / NRC pre-application', sourceDate:'April 2026', sourceUrl:'https://fanuclear.com/first-american-nuclear-submits-regulatory-engagement-plan-for-fast-spectrum-small-modular-reactor-smr/', confidence:'Medium', caveat:'FANCO states EAGL-1 initially uses HALEU dioxide; closed-cycle and breeding claims are developer-stated.' },
+  // Other
+  { name:"Antares Nuclear, Inc.", design:"R-1 Microreactor (Mark-0 / Mark-1)", capacity:"N/A", fuel:"TRISO",
+    addr:"Torrance, CA (HQ); Idaho Falls, ID; Aiken, SC (operations)", lat:33.8358, lon:-118.3406,
+    tech:['other'], size:['micro'], fuelKeys:['triso'] },
+  { name:"Deployable Energy", design:"Unity Nuclear Battery (UNB)", capacity:"1.0 MWe", fuel:"LEU",
+    addr:"Houston, TX", lat:29.7604, lon:-95.3698,
+    tech:['other'], size:['micro'], fuelKeys:['leu'] }
+];
+
+const PROJECTS = [
+  { name:"Aalo-X", design:"Aalo-1", units:"1", cap:"10 MWe",
+    site:"Idaho National Laboratory (Materials and Fuels Complex), Idaho Falls, ID",
+    lat:43.5944, lon:-112.9489, status:"uc", tech:['sodium'], size:['micro'], fuelKeys:['leu'] },
+  { name:"ACU Molten Salt Research Reactor (MSR-1)", design:"MSR-1", units:"1", cap:"1 MWt, non-power",
+    site:"Abilene Christian University – Dillard Science & Engineering Research Center, Abilene, TX",
+    lat:32.4720, lon:-99.7048, status:"uc", tech:['ms'], size:['nonpower'], fuelKeys:['mfs'],
+    sourceType:'NRC / ACU', sourceDate:'Verified April 2026', sourceUrl:'https://www.nrc.gov/reactors/non-power/new-facility-licensing/msrr-acu/abilene-christian-university-pre-app', confidence:'High', caveat:'NRC describes MSR-1 as an up-to-1 MWt non-power molten salt research reactor.' },
+  { name:"Molten Chloride Fast Reactor Experiment (MCRE)", design:"MCFR", units:"1", cap:"N/A",
+    site:"Idaho National Laboratory, Idaho Falls, ID (TerraPower / Southern Co. / ORNL)",
+    lat:43.5208, lon:-113.0019, status:"uc", tech:['ms'], size:['tbd'], fuelKeys:['mfs'] },
+  { name:"Oklo Aurora Reactor Pilot Program", design:"Aurora Powerhouse", units:"1", cap:"75 MWe",
+    site:"Idaho National Laboratory, Idaho Falls, ID",
+    lat:43.5240, lon:-112.9985, status:"uc", tech:['sodium'], size:['smr'], fuelKeys:['haleu'] },
+  { name:"Project Pele U.S. Army", design:"Project Pele MNR", units:"1", cap:"1.5 MWe",
+    site:"Idaho National Laboratory, Idaho Falls, ID (BWXT-manufactured in Lynchburg, VA)",
+    lat:43.5160, lon:-113.0050, status:"uc", tech:['htgr'], size:['micro'], fuelKeys:['triso'] },
+  { name:"San Rafael Energy Lab Valar Demonstration", design:"Ward 250", units:"1", cap:"5 MWe",
+    site:"San Rafael Energy Lab, Emery County, UT",
+    lat:39.0133, lon:-110.7263, status:"uc", tech:['htgr'], size:['micro'], fuelKeys:['triso'] },
+  { name:"Hermes Low-Power Demonstration Reactor", design:"KP-FHR", units:"1", cap:"35 MWth (~12 MWe)",
+    site:"East Tennessee Technology Park (Heritage Center), Oak Ridge, TN",
+    lat:35.9249, lon:-84.3911, status:"uc", tech:['ms'], size:['micro'], fuelKeys:['triso'] },
+  { name:"Hermes 2", design:"KP-FHR (2 × 35 MWth)", units:"2", cap:"50 MWe",
+    site:"East Tennessee Technology Park, Oak Ridge, TN — PPA with Google / TVA",
+    lat:35.9265, lon:-84.3895, status:"uc", tech:['ms'], size:['smr'], fuelKeys:['triso'],
+    sourceType:'Kairos / TVA / Google', sourceDate:'17 Apr 2026', sourceUrl:'https://www.kairospower.com/updates/kairos-power-breaks-ground-on-hermes-2-demonstration-plant', confidence:'High', caveat:'Groundbreaking announced; classify as construction / site work, not operating.' },
+  { name:"Antares Demonstration Project", design:"Mark-0", units:"1", cap:"N/A",
+    site:"Utah (specific site not publicly identified; note: Antares Mark-0 also at INL)",
+    lat:39.5, lon:-111.5, status:"planned", tech:['other'], size:['micro'], fuelKeys:['triso'] },
+  { name:"eVinci Demonstration Microreactor", design:"eVinci", units:"1", cap:"0.2–5 MWe",
+    site:"Idaho National Laboratory DOME facility, Idaho Falls, ID",
+    lat:43.5180, lon:-113.0010, status:"planned", tech:['other'], size:['micro'], fuelKeys:['triso'] },
+  { name:"Illinois Microreactor Demonstration Project", design:"KRONOS MMR", units:"1", cap:"15 MWe",
+    site:"University of Illinois at Urbana-Champaign, Champaign, IL",
+    lat:40.1020, lon:-88.2272, status:"planned", tech:['htgr'], size:['micro'], fuelKeys:['triso'] },
+  { name:"Penn State FRONTIER program", design:"eVinci", units:"1", cap:"0.2–5 MWe",
+    site:"Pennsylvania State University, University Park, PA",
+    lat:40.7982, lon:-77.8599, status:"planned", tech:['other'], size:['micro'], fuelKeys:['triso'] },
+  { name:"Project TETRA", design:"IMSR", units:"1", cap:"N/A",
+    site:"Utah (specific site TBD; DOE Reactor Pilot Program selection)",
+    lat:39.6, lon:-111.6, status:"planned", tech:['ms'], size:['smr'], fuelKeys:['leu'] },
+  { name:"Radiant Kaleidos Demonstration Unit (KDU)", design:"Kaleidos", units:"1", cap:"1 MWe",
+    site:"Idaho National Laboratory DOME facility, Idaho Falls, ID",
+    lat:43.5170, lon:-113.0030, status:"planned", tech:['htgr'], size:['micro'], fuelKeys:['triso'] },
+  { name:"Last Energy Texas A&M-RELLIS Pilot", design:"PWR-5/PWR-20", units:"1", cap:"5 MWe",
+    site:"Texas A&M-RELLIS Campus, Bryan / College Station, TX",
+    lat:30.6325, lon:-96.4769, status:"planned", tech:['lw'], size:['micro'], fuelKeys:['leu'] },
+  { name:"Kemmerer Power Station Unit 1", design:"Natrium", units:"1", cap:"345 MWe",
+    site:"Kemmerer, WY — sited near retiring Naughton coal-fired plant",
+    lat:41.7783, lon:-110.5380, status:"planned", tech:['sodium'], size:['smr'], fuelKeys:['haleu'] },
+  { name:"Clinch River Nuclear Site", design:"BWRX-300", units:"1–4", cap:"300–1200 MWe",
+    site:"Clinch River Nuclear Site, Oak Ridge, TN (TVA)",
+    lat:35.8964, lon:-84.3825, status:"planned", tech:['lw'], size:['smr'], fuelKeys:['leu'] },
+  { name:"Deep Fission – Kansas (FOAK)", design:"Gravity Nuclear Reactor", units:"1", cap:"15 MWe",
+    site:"Great Plains Industrial Park, Parsons, KS",
+    lat:37.3408, lon:-95.2611, status:"planned", tech:['lw'], size:['micro'], fuelKeys:['leu'] },
+  { name:"Duke Energy Belews Creek", design:"Unspecified small reactor", units:"1", cap:"300 MWe",
+    site:"Belews Creek Steam Station, Stokes County, NC",
+    lat:36.2812, lon:-80.0633, status:"planned", tech:['other'], size:['smr'], fuelKeys:['tbd'] },
+  { name:"Cascade Advanced Energy Facility", design:"Xe-100 (12 units)", units:"12", cap:"960 MWe (12×80)",
+    site:"Energy Northwest's Columbia Generating Station campus, Hanford / Richland, WA — Amazon offtake",
+    lat:46.4729, lon:-119.2786, status:"planned", tech:['htgr'], size:['smr'], fuelKeys:['triso'] },
+  { name:"Joshua Falls SMR Project", design:"Unspecified small reactor", units:"1", cap:"N/A",
+    site:"Joshua Falls site, Amherst County, VA (Dominion Energy)",
+    lat:37.5839, lon:-79.0489, status:"planned", tech:['other'], size:['tbd'], fuelKeys:['tbd'] },
+  { name:"Pioneer Units 1 and 2", design:"SMR-300", units:"2", cap:"600 MWe",
+    site:"Palisades site, Covert Township, MI (Holtec — co-located with Palisades restart)",
+    lat:42.3252, lon:-86.3152, status:"planned", tech:['lw'], size:['smr'], fuelKeys:['leu'] },
+  { name:"Last Energy Haskell Project", design:"PWR-20", units:"1", cap:"20 MWe",
+    site:"Haskell County, TX — 200-acre site, ~1 hr north of Abilene",
+    lat:33.1582, lon:-99.7370, status:"planned", tech:['lw'], size:['micro'], fuelKeys:['leu'] },
+  { name:"Long Mott Generating Station", design:"Xe-100 (4 units)", units:"4", cap:"320 MWe (4×80)",
+    site:"Dow Chemical UCC Seadrift Operations, near Long Mott, Calhoun County, TX",
+    lat:28.4078, lon:-96.7164, status:"planned", tech:['htgr'], size:['smr'], fuelKeys:['triso'] },
+  { name:"ENTRA1 TVA Facility", design:"NuScale Power Module (12 units)", units:"12", cap:"600 MWe",
+    site:"TVA service area, TN (specific site TBD)",
+    lat:35.5, lon:-85.5, status:"planned", tech:['lw'], size:['smr'], fuelKeys:['leu'] },
+  { name:"Joint Base Anacostia-Bolling", design:"KRONOS MMR", units:"1", cap:"15 MWe",
+    site:"Joint Base Anacostia-Bolling, Washington, D.C. (USAF ANPI)",
+    lat:38.8392, lon:-77.0153, status:"planned", tech:['htgr'], size:['micro'], fuelKeys:['triso'] },
+  { name:"Radiant U.S. Air Force", design:"Kaleidos", units:"N/A", cap:"1 MWe",
+    site:"Site TBD (USAF ANPI initiative — first commercial mass-manufactured microreactor contract for USAF)",
+    lat:38.8500, lon:-77.0500, status:"planned", tech:['htgr'], size:['micro'], fuelKeys:['triso'] },
+  // FANCO Indiana Energy Park — NEW
+  { name:"FANCO Indiana Energy Park (Closed-Fuel Cycle)", design:"EAGL-1", units:"Up to 6", cap:"~1,440 MWe (6 × 240 MWe target)",
+    site:"Indiana — specific site TBD. First US closed-fuel-cycle nuclear energy park; reprocessing on-site. FANCO has cited 95–97% long-lasting waste reduction in public materials. Interim natural gas → nuclear transition (2028 → ~2032).",
+    lat:39.7684, lon:-86.1581, status:"planned",
+    tech:['lead'], size:['smr'], fuelKeys:['haleu'], formKeys:['oxide'],
+    sourceType:'Company / State of Indiana', sourceDate:'Nov 2025 / Apr 2026', sourceUrl:'https://fanuclear.com/first-american-nuclear-and-the-state-of-indiana-introduce-the-first-closed-fuel-cycle-nuclear-energy-park-in-the-u-s-reprocessing-and-reusing-spen/', confidence:'Medium', caveat:'Waste-reduction and schedule claims are developer-stated and should be independently validated before investor use.' },
+  { name:"Eielson Air Force Base Microreactor", design:"Aurora / vendor selected: Oklo", units:"1", cap:"1–5 MWe target",
+    site:"Eielson Air Force Base, near Fairbanks, AK — USAF microreactor pilot",
+    lat:64.6657, lon:-147.1015, status:"planned", tech:['sodium'], size:['micro'], fuelKeys:['haleu'], formKeys:['metal'],
+    sourceType:'EIA / USAF / vendor materials', sourceDate:'Verified April 2026', sourceUrl:'https://www.eia.gov/todayinenergy/detail.php?id=67584', confidence:'Medium', caveat:'Military/federal pilot; deployment scope and timing subject to federal procurement and safety review.' },
+  // Janus Program bases (design TBD)
+  { name:"Janus Fort Benning (Fort Moore)", design:"TBD", units:"N/A", cap:"N/A",
+    site:"Fort Benning (Fort Moore), Columbus, GA",
+    lat:32.3621, lon:-84.9686, status:"candidate", tech:['other'], size:['tbd'], fuelKeys:['tbd'],
+    sourceType:'U.S. Army', sourceDate:'Sep 2025', sourceUrl:'https://www.army.mil/article/289074/army_announces_next_steps_on_janus_program_for_next_generation_nuclear_energy', confidence:'Medium', caveat:'Selected for consideration; final locations and vendors remain TBD.' },
+  { name:"Janus Fort Bragg (Fort Liberty)", design:"TBD", units:"N/A", cap:"N/A",
+    site:"Fort Bragg (Fort Liberty), Fayetteville, NC",
+    lat:35.1391, lon:-79.0067, status:"candidate", tech:['other'], size:['tbd'], fuelKeys:['tbd'],
+    sourceType:'U.S. Army', sourceDate:'Sep 2025', sourceUrl:'https://www.army.mil/article/289074/army_announces_next_steps_on_janus_program_for_next_generation_nuclear_energy', confidence:'Medium', caveat:'Selected for consideration; final locations and vendors remain TBD.' },
+  { name:"Janus Fort Campbell", design:"TBD", units:"N/A", cap:"N/A",
+    site:"Fort Campbell, KY/TN border — Hopkinsville, KY / Clarksville, TN",
+    lat:36.6726, lon:-87.4609, status:"candidate", tech:['other'], size:['tbd'], fuelKeys:['tbd'],
+    sourceType:'U.S. Army', sourceDate:'Sep 2025', sourceUrl:'https://www.army.mil/article/289074/army_announces_next_steps_on_janus_program_for_next_generation_nuclear_energy', confidence:'Medium', caveat:'Selected for consideration; final locations and vendors remain TBD.' },
+  { name:"Janus Fort Drum", design:"TBD", units:"N/A", cap:"N/A",
+    site:"Fort Drum, near Watertown, NY",
+    lat:44.0469, lon:-75.7569, status:"candidate", tech:['other'], size:['tbd'], fuelKeys:['tbd'],
+    sourceType:'U.S. Army', sourceDate:'Sep 2025', sourceUrl:'https://www.army.mil/article/289074/army_announces_next_steps_on_janus_program_for_next_generation_nuclear_energy', confidence:'Medium', caveat:'Selected for consideration; final locations and vendors remain TBD.' },
+  { name:"Janus Fort Hood (Fort Cavazos)", design:"TBD", units:"N/A", cap:"N/A",
+    site:"Fort Hood (Fort Cavazos), Killeen, TX",
+    lat:31.1349, lon:-97.7757, status:"candidate", tech:['other'], size:['tbd'], fuelKeys:['tbd'],
+    sourceType:'U.S. Army', sourceDate:'Sep 2025', sourceUrl:'https://www.army.mil/article/289074/army_announces_next_steps_on_janus_program_for_next_generation_nuclear_energy', confidence:'Medium', caveat:'Selected for consideration; final locations and vendors remain TBD.' },
+  { name:"Janus Fort Wainwright", design:"TBD", units:"N/A", cap:"N/A",
+    site:"Fort Wainwright, near Fairbanks, AK",
+    lat:64.8378, lon:-147.6328, status:"candidate", tech:['other'], size:['tbd'], fuelKeys:['tbd'],
+    sourceType:'U.S. Army', sourceDate:'Sep 2025', sourceUrl:'https://www.army.mil/article/289074/army_announces_next_steps_on_janus_program_for_next_generation_nuclear_energy', confidence:'Medium', caveat:'Selected for consideration; final locations and vendors remain TBD.' },
+  { name:"Janus Holston Army Ammunition Plant", design:"TBD", units:"N/A", cap:"N/A",
+    site:"Holston Army Ammunition Plant, Kingsport, TN",
+    lat:36.4940, lon:-82.4847, status:"candidate", tech:['other'], size:['tbd'], fuelKeys:['tbd'],
+    sourceType:'U.S. Army', sourceDate:'Sep 2025', sourceUrl:'https://www.army.mil/article/289074/army_announces_next_steps_on_janus_program_for_next_generation_nuclear_energy', confidence:'Medium', caveat:'Selected for consideration; final locations and vendors remain TBD.' },
+  { name:"Janus Joint Base Lewis-McChord", design:"TBD", units:"N/A", cap:"N/A",
+    site:"Joint Base Lewis-McChord, near Tacoma, WA",
+    lat:47.0908, lon:-122.5786, status:"candidate", tech:['other'], size:['tbd'], fuelKeys:['tbd'],
+    sourceType:'U.S. Army', sourceDate:'Sep 2025', sourceUrl:'https://www.army.mil/article/289074/army_announces_next_steps_on_janus_program_for_next_generation_nuclear_energy', confidence:'Medium', caveat:'Selected for consideration; final locations and vendors remain TBD.' },
+  { name:"Janus Redstone Arsenal", design:"TBD", units:"N/A", cap:"N/A",
+    site:"Redstone Arsenal, Huntsville, AL",
+    lat:34.6815, lon:-86.6392, status:"candidate", tech:['other'], size:['tbd'], fuelKeys:['tbd'],
+    sourceType:'U.S. Army', sourceDate:'Sep 2025', sourceUrl:'https://www.army.mil/article/289074/army_announces_next_steps_on_janus_program_for_next_generation_nuclear_energy', confidence:'Medium', caveat:'Selected for consideration; final locations and vendors remain TBD.' }
+];
+
+const LABS = [
+  { name:"Idaho National Laboratory (INL)",
+    loc:"Idaho Falls, ID", operator:"Battelle Energy Alliance",
+    desc:"DOE's lead nuclear-energy lab. NRIC, DOME microreactor test bed, Materials and Fuels Complex. FOAK demo site for ~10 designs in this dataset.",
+    lat:43.5208, lon:-113.0019 },
+  { name:"Los Alamos National Laboratory (LANL)",
+    loc:"Los Alamos, NM (operates NCERC at NNSS)", operator:"Triad National Security, LLC",
+    desc:"Operates NCERC — the only general-purpose critical-experiments facility in the US. Kairos TRISO fuel pebble fabrication; Project NOVA with Valar Atomics; Deimos HALEU benchmark experiments.",
+    lat:35.8800, lon:-106.3030 },
+  { name:"LANL — NCERC at NNSS",
+    loc:"Nevada National Security Site, Mercury, NV", operator:"NNSA via LANL",
+    desc:"Site of Deimos and Project NOVA criticality experiments. Operated by LANL under NNSA oversight.",
+    lat:36.8023, lon:-116.0497 },
+  { name:"Oak Ridge National Laboratory (ORNL)",
+    loc:"Oak Ridge, TN", operator:"UT-Battelle, LLC",
+    desc:"Historical home of MSR and TRISO fuel research. $27M / 5-yr Kairos partnership (Feb 2026). Co-located with X-energy TRISO-X facility, Hermes 1+2, and Clinch River BWRX-300 site.",
+    lat:35.9302, lon:-84.3119 },
+  { name:"Savannah River National Laboratory (SRNL)",
+    loc:"Aiken, SC (Savannah River Site)", operator:"Battelle Savannah River Alliance, LLC",
+    desc:"DOE-EM lead lab. CRADA with Antares Nuclear (Sep 2024). HALEU downblending (~2 t over 3 yrs), TRISO graphite-removal patents, MSR spent-fuel reprocessing R&D. 310 sq mi SRS site.",
+    lat:33.3415, lon:-81.7393 },
+  { name:"Argonne National Laboratory (ANL)",
+    loc:"Lemont, IL (Chicago area)", operator:"UChicago Argonne, LLC",
+    desc:"Liquid-metal fast reactor heritage (EBR-I/II). Owns SAM thermal-hydraulics code. GAIN voucher partnerships with Radiant, Oklo, Terrestrial Energy, Kairos.",
+    lat:41.7099, lon:-87.9831 },
+  { name:"Pacific Northwest National Laboratory (PNNL)",
+    loc:"Richland, WA", operator:"Battelle Memorial Institute",
+    desc:"Adjacent to Hanford and Energy Northwest. Materials, instrumentation, HALEU transportation/security research. Note: FANCO was originally based here.",
+    lat:46.3473, lon:-119.2784 },
+  { name:"Brookhaven National Laboratory (BNL)",
+    loc:"Upton, NY", operator:"Brookhaven Science Associates, LLC",
+    desc:"Reactor materials, neutron scattering, advanced reactor PRA.",
+    lat:40.8762, lon:-72.8717 },
+  { name:"Sandia National Laboratories (SNL)",
+    loc:"Albuquerque, NM (and Livermore, CA)", operator:"NTESS / NNSA",
+    desc:"MELCOR severe accident code, nuclear security, instrumentation. Tools used widely in NRC licensing reviews.",
+    lat:35.0467, lon:-106.5460 }
+];
+
+const FOCAL = [
+  { name:"Aiken, SC — newcleo US relocation target",
+    desc:"Adjacent to Savannah River Site / SRNL. Same site hosts Antares Nuclear operations. ~190 mi to Fort Benning (Janus), ~330 mi to Oak Ridge cluster, ~330 mi to Redstone Arsenal.",
+    lat:33.5604, lon:-81.7196 }
+];
+
+/* ============================================================
+   MAP
+   ============================================================ */
+const map = L.map('map', { center: [39.5, -98.5], zoom: 4, zoomControl: true, worldCopyJump: true });
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>',
+  subdomains: 'abcd', maxZoom: 19
+}).addTo(map);
+
+function makeIcon(type) {
+  const colorVar = type==='vendor'?'teal':type==='uc'?'green':type==='planned'?'amber':type==='candidate'?'blue':type==='lab'?'purple':'orange';
+  return L.divIcon({
+    className: '',
+    html: `<div class="marker-pin ${type==='lab'?'lab':type==='focal'?'focal':''}" style="background: var(--accent-${colorVar});"></div>`,
+    iconSize: type==='focal'?[28,28]:type==='lab'?[26,26]:[20,20],
+    iconAnchor: type==='focal'?[14,14]:type==='lab'?[13,13]:[10,10],
+    popupAnchor: [0, -10]
+  });
+}
+
+const gmapsLink = (lat, lon) => `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+
+function hasText(rec, pattern) { return pattern.test(`${rec.name||''} ${rec.design||''} ${rec.fuel||''} ${rec.site||''} ${rec.addr||''}`); }
+function assayKeys(rec) {
+  if (rec.assayKeys) return rec.assayKeys;
+  const fk = rec.fuelKeys || [];
+  const txt = `${rec.fuel||''} ${rec.design||''} ${rec.name||''}`.toLowerCase();
+  const out = new Set();
+  if (fk.includes('leu') || /\bleu\b|low-enriched/.test(txt)) out.add('leu');
+  if (fk.includes('haleu') || fk.includes('triso') || /haleu|triso|high-assay/.test(txt)) out.add('haleu');
+  if (fk.includes('mfs') && out.size === 0) out.add('tbd');
+  if (fk.includes('tbd') || out.size === 0) out.add('tbd');
+  return [...out];
+}
+function formKeys(rec) {
+  if (rec.formKeys) return rec.formKeys;
+  const fk = rec.fuelKeys || [];
+  const out = new Set();
+  if (fk.includes('triso')) out.add('triso');
+  if (fk.includes('mfs')) out.add('mfs');
+  if ((rec.tech||[]).includes('lw') || hasText(rec, /fanco|eagl|oxide/i)) out.add('oxide');
+  if ((rec.tech||[]).includes('sodium') || hasText(rec, /aurora|natrium|arc-100/i)) out.add('metal');
+  if (out.size === 0) out.add('tbd');
+  return [...out];
+}
+function meta(rec) { return { ...DEFAULT_SOURCE, ...rec }; }
+function tagsHtml(tech, size, assay, form) {
+  const t = (tech||[]).map(k => `<span class="popup-tag${k==='lead'?' lead':''}">${TECH_LABEL[k] || k}</span>`).join('');
+  const s = (size||[]).map(k => `<span class="popup-tag">${SIZE_LABEL[k] || k}</span>`).join('');
+  const a = (assay||[]).map(k => `<span class="popup-tag fuel">${ASSAY_LABEL[k] || k}</span>`).join('');
+  const f = (form||[]).map(k => `<span class="popup-tag fuel">${FORM_LABEL[k] || k}</span>`).join('');
+  return (t || s || a || f) ? `<div class="popup-tags">${t}${s}${a}${f}</div>` : '';
+}
+function stackHtml(rec, extraStatus='') {
+  const ak = assayKeys(rec).map(k => ASSAY_LABEL[k] || k).join(', ');
+  const fk = formKeys(rec).map(k => FORM_LABEL[k] || k).join(', ');
+  const tk = (rec.tech||[]).map(k => TECH_LABEL[k] || k).join(', ') || 'N/A';
+  const sk = (rec.size||[]).map(k => SIZE_LABEL[k] || k).join(', ') || 'N/A';
+  const status = extraStatus || STATUS_LABEL[rec.status] || STATUS_LABEL[rec.type] || 'N/A';
+  return `<div class="popup-stack">
+    <span class="k">Coolant/family</span><span class="v">${tk}</span>
+    <span class="k">Size class</span><span class="v">${sk}</span>
+    <span class="k">Assay</span><span class="v">${ak}</span>
+    <span class="k">Fuel form</span><span class="v">${fk}</span>
+    <span class="k">Status</span><span class="v">${status}</span>
+  </div>`;
+}
+function metaHtml(rec) {
+  const m = meta(rec);
+  const link = m.sourceUrl ? `<a href="${m.sourceUrl}" target="_blank" rel="noopener">${m.sourceType || 'Source'}</a>` : (m.sourceType || 'Source TBD');
+  return `<div class="popup-meta"><b>Source:</b> ${link} · <b>Date:</b> ${m.sourceDate || 'TBD'} · <b>Confidence:</b> ${m.confidence || 'Medium'}${m.caveat ? `<br><b>Caveat:</b> ${m.caveat}` : ''}</div>`;
+}
+
+function popupVendor(v) {
+  return `<div class="popup-type vendor">Vendor HQ</div>
+    <div class="popup-title">${v.name}</div>
+    <div class="popup-sub">${v.design}</div>
+    ${tagsHtml(v.tech, v.size, assayKeys(v), formKeys(v))}
+    ${stackHtml(v, 'Vendor HQ')}
+    <div class="popup-row"><b>Capacity:</b> ${v.capacity}</div>
+    <div class="popup-row"><b>Fuel:</b> ${v.fuel}</div>
+    <div class="popup-row"><b>HQ:</b> ${v.addr}</div>
+    ${metaHtml(v)}
+    <div class="popup-row" style="font-family:ui-monospace,monospace;font-size:11px;color:var(--text-muted);">${v.lat.toFixed(4)}, ${v.lon.toFixed(4)}</div>
+    <div class="popup-actions">
+      <a class="popup-btn" href="${gmapsLink(v.lat, v.lon)}" target="_blank" rel="noopener">Open in Google Maps</a>
+    </div>`;
+}
+function popupProject(p) {
+  const tcls = p.status || 'planned';
+  const tlbl = STATUS_LABEL[p.status] || 'Planned / announced';
+  return `<div class="popup-type ${tcls}">${tlbl}</div>
+    <div class="popup-title">${p.name}</div>
+    <div class="popup-sub">${p.design}</div>
+    ${tagsHtml(p.tech, p.size, assayKeys(p), formKeys(p))}
+    ${stackHtml(p)}
+    <div class="popup-row"><b>Units:</b> ${p.units} &nbsp; <b>Capacity:</b> ${p.cap}</div>
+    <div class="popup-row"><b>Site:</b> ${p.site}</div>
+    ${metaHtml(p)}
+    <div class="popup-row" style="font-family:ui-monospace,monospace;font-size:11px;color:var(--text-muted);">${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}</div>
+    <div class="popup-actions">
+      <a class="popup-btn" href="${gmapsLink(p.lat, p.lon)}" target="_blank" rel="noopener">Open in Google Maps</a>
+    </div>`;
+}
+function popupLab(l) {
+  return `<div class="popup-type lab">National Laboratory</div>
+    <div class="popup-title">${l.name}</div>
+    <div class="popup-sub">${l.loc}</div>
+    <div class="popup-row"><b>Operator:</b> ${l.operator}</div>
+    <div class="popup-row" style="margin-top:6px;">${l.desc}</div>
+    ${metaHtml(l)}
+    <div class="popup-row" style="font-family:ui-monospace,monospace;font-size:11px;color:var(--text-muted);margin-top:6px;">${l.lat.toFixed(4)}, ${l.lon.toFixed(4)}</div>
+    <div class="popup-actions">
+      <a class="popup-btn" href="${gmapsLink(l.lat, l.lon)}" target="_blank" rel="noopener">Open in Google Maps</a>
+    </div>`;
+}
+function popupFocal(f) {
+  return `<div class="popup-type focal">Strategic Anchor</div>
+    <div class="popup-title">${f.name}</div>
+    <div class="popup-row" style="margin-top:6px;">${f.desc}</div>
+    ${metaHtml(f)}
+    <div class="popup-row" style="font-family:ui-monospace,monospace;font-size:11px;color:var(--text-muted);margin-top:6px;">${f.lat.toFixed(4)}, ${f.lon.toFixed(4)}</div>
+    <div class="popup-actions">
+      <a class="popup-btn" href="${gmapsLink(f.lat, f.lon)}" target="_blank" rel="noopener">Open in Google Maps</a>
+    </div>`;
+}
+
+/* ============================================================
+   FLAT MARKER LIST
+   ============================================================ */
+const ALL = [];
+function addRecord(rec) { rec.isOnMap = false; ALL.push(rec); }
+
+VENDORS.forEach(v => {
+  const m = L.marker([v.lat, v.lon], { icon: makeIcon('vendor') }).bindPopup(popupVendor(v), { maxWidth: 340 });
+  addRecord({ marker: m, type: 'vendor', tech: v.tech, size: v.size, assayKeys: assayKeys(v), formKeys: formKeys(v), raw: v,
+    name: v.name, sub: v.design, capacity: v.capacity || '', sourceType: meta(v).sourceType, confidence: meta(v).confidence,
+    search: `${v.name} ${v.design} ${v.fuel} ${v.addr} ${meta(v).caveat || ''}`.toLowerCase() });
+});
+PROJECTS.forEach(p => {
+  const t = p.status || 'planned';
+  const m = L.marker([p.lat, p.lon], { icon: makeIcon(t) }).bindPopup(popupProject(p), { maxWidth: 360 });
+  addRecord({ marker: m, type: t, tech: p.tech, size: p.size, assayKeys: assayKeys(p), formKeys: formKeys(p), raw: p,
+    name: p.name, sub: p.design, capacity: p.cap || '', sourceType: meta(p).sourceType, confidence: meta(p).confidence,
+    search: `${p.name} ${p.design} ${p.site} ${meta(p).caveat || ''}`.toLowerCase() });
+});
+LABS.forEach(l => {
+  const m = L.marker([l.lat, l.lon], { icon: makeIcon('lab') }).bindPopup(popupLab(l), { maxWidth: 380 });
+  addRecord({ marker: m, type: 'lab', tech: null, size: null, assayKeys: null, formKeys: null, raw: l,
+    name: l.name, sub: l.loc, capacity: '', sourceType: meta(l).sourceType, confidence: meta(l).confidence,
+    search: `${l.name} ${l.loc} ${l.operator} ${l.desc}`.toLowerCase() });
+});
+FOCAL.forEach(f => {
+  const m = L.marker([f.lat, f.lon], { icon: makeIcon('focal') }).bindPopup(popupFocal(f), { maxWidth: 340 });
+  addRecord({ marker: m, type: 'focal', tech: null, size: null, assayKeys: null, formKeys: null, raw: f,
+    name: f.name, sub: 'Strategic anchor', capacity: '', sourceType: meta(f).sourceType, confidence: meta(f).confidence,
+    search: `${f.name} ${f.desc}`.toLowerCase() });
+});
+
+/* ============================================================
+   FILTER STATE
+   ============================================================ */
+const state = {
+  layer: { vendor:true, uc:true, planned:true, candidate:true, lab:true, focal:true },
+  tech:  { lw:true, htgr:true, ms:true, sodium:true, lead:true, other:true },
+  fuel:  { leu:true, haleu:true, tbd:true },
+  form:  { oxide:true, triso:true, metal:true, mfs:true, tbd:true },
+  size:  { micro:true, smr:true, large:true, nonpower:true, tbd:true },
+  query: ''
+};
+
+function applyFilters() {
+  let visibleCount = 0;
+  ALL.forEach(rec => {
+    const layerOk = state.layer[rec.type];
+    let techOk = true, sizeOk = true, fuelOk = true, formOk = true;
+    if (rec.tech && rec.tech.length) techOk = rec.tech.some(t => state.tech[t]);
+    if (rec.size && rec.size.length) sizeOk = rec.size.some(s => state.size[s]);
+    if (rec.assayKeys && rec.assayKeys.length) fuelOk = rec.assayKeys.some(f => state.fuel[f]);
+    if (rec.formKeys && rec.formKeys.length) formOk = rec.formKeys.some(f => state.form[f]);
+    const queryOk = !state.query || rec.search.includes(state.query);
+    const show = layerOk && techOk && sizeOk && fuelOk && formOk && queryOk;
+    if (show) {
+      if (!rec.isOnMap) { map.addLayer(rec.marker); rec.isOnMap = true; }
+      visibleCount++;
+    } else {
+      if (rec.isOnMap) { map.removeLayer(rec.marker); rec.isOnMap = false; }
+    }
+  });
+  document.getElementById('stat-visible').textContent = visibleCount;
+  renderList();
+}
+
+/* ============================================================
+   RIGHT-PANEL VISIBLE LIST
+   ============================================================ */
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+const LIST_GROUPS = [
+  { key: 'focal',   label: 'Strategic anchor',   color: 'orange', shape: '' },
+  { key: 'vendor',  label: 'Vendor HQ',          color: 'teal',   shape: '' },
+  { key: 'uc',      label: 'Under construction', color: 'green',  shape: '' },
+  { key: 'planned', label: 'Planned / announced', color: 'amber',  shape: '' },
+  { key: 'candidate', label: 'Candidate / considered', color: 'blue', shape: '' },
+  { key: 'lab',     label: 'National lab',       color: 'purple', shape: 'li-square' }
+];
+function renderList() {
+  const container = document.getElementById('visible-list');
+  const visible = ALL.filter(r => r.isOnMap);
+  document.getElementById('right-total').textContent = visible.length;
+  if (visible.length === 0) {
+    container.innerHTML = '<div class="list-empty">No markers match the current filters.</div>';
+    return;
+  }
+  let html = '';
+  LIST_GROUPS.forEach(g => {
+    const items = visible.filter(r => r.type === g.key);
+    if (items.length === 0) return;
+    items.sort((a, b) => a.name.localeCompare(b.name));
+    html += '<div class="list-section">';
+    html += `<div class="list-section-header">
+      <span class="ls-dot" style="background:var(--accent-${g.color});"></span>
+      ${g.label}
+      <span class="ls-count">${items.length}</span>
+    </div>`;
+    items.forEach(item => {
+      const idx = ALL.indexOf(item);
+      html += `<div class="list-item" data-rec-id="${idx}">
+        <span class="li-dot ${g.shape}" style="background:var(--accent-${g.color});"></span>
+        <div class="li-body">
+          <div class="li-name">${esc(item.name)}</div>
+          <div class="li-sub">${esc(item.sub)}</div>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  container.innerHTML = html;
+  container.querySelectorAll('.list-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.recId, 10);
+      const rec = ALL[idx];
+      if (!rec) return;
+      container.querySelectorAll('.list-item.active').forEach(e => e.classList.remove('active'));
+      el.classList.add('active');
+      map.flyTo(rec.marker.getLatLng(), 9, { duration: 0.6 });
+      setTimeout(() => rec.marker.openPopup(), 700);
+    });
+  });
+}
+
+/* ============================================================
+   COUNTS
+   ============================================================ */
+function computeCounts() {
+  const c = { vendor:0, uc:0, planned:0, candidate:0, lab:0, focal:0,
+              lw:0, htgr:0, ms:0, sodium:0, lead:0, other:0,
+              micro:0, smr:0, large:0, nonpower:0,
+              leu:0, haleu:0, tbdFuel:0,
+              formOxide:0, formTriso:0, formMetal:0, formMfs:0, formTbd:0,
+              tbdSize:0 };
+  ALL.forEach(r => {
+    c[r.type]++;
+    if (r.tech) r.tech.forEach(t => c[t]++);
+    if (r.size) r.size.forEach(s => { if (s==='tbd') c.tbdSize++; else c[s]++; });
+    if (r.assayKeys) r.assayKeys.forEach(f => { if (f==='tbd') c.tbdFuel++; else c[f]++; });
+    if (r.formKeys) r.formKeys.forEach(f => {
+      if (f==='oxide') c.formOxide++;
+      else if (f==='triso') c.formTriso++;
+      else if (f==='metal') c.formMetal++;
+      else if (f==='mfs') c.formMfs++;
+      else c.formTbd++;
+    });
+  });
+  const map_ = {
+    'count-vendor': c.vendor, 'count-uc': c.uc, 'count-planned': c.planned,
+    'count-candidate': c.candidate, 'count-lab': c.lab, 'count-focal': c.focal,
+    'count-lw': c.lw, 'count-htgr': c.htgr, 'count-ms': c.ms,
+    'count-sodium': c.sodium, 'count-lead': c.lead, 'count-other': c.other,
+    'count-leu': c.leu, 'count-haleu': c.haleu, 'count-tbd-fuel': c.tbdFuel,
+    'count-form-oxide': c.formOxide, 'count-form-triso': c.formTriso,
+    'count-form-metal': c.formMetal, 'count-form-mfs': c.formMfs, 'count-form-tbd': c.formTbd,
+    'count-micro': c.micro, 'count-smr': c.smr, 'count-large': c.large,
+    'count-nonpower': c.nonpower, 'count-tbd-size': c.tbdSize
+  };
+  Object.entries(map_).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  });
+  document.getElementById('stat-vendors').textContent = c.vendor;
+  document.getElementById('stat-uc').textContent      = c.uc;
+  document.getElementById('stat-planned').textContent = c.planned;
+  document.getElementById('stat-candidate').textContent = c.candidate;
+  document.getElementById('stat-labs').textContent    = c.lab;
+}
+computeCounts();
+
+/* ============================================================
+   PILL HANDLERS
+   ============================================================ */
+document.querySelectorAll('.filter[data-group]').forEach(el => {
+  el.addEventListener('click', e => {
+    e.preventDefault();
+    const group = el.dataset.group;
+    const key   = el.dataset.key;
+    const cb    = el.querySelector('input');
+    cb.checked  = !cb.checked;
+    el.classList.toggle('active', cb.checked);
+    state[group][key] = cb.checked;
+    applyFilters();
+  });
+});
+
+/* ============================================================
+   QUICK VIEWS
+   ============================================================ */
+const VIEWS = {
+  us:        { center: [39.5, -98.5],   zoom: 4 },
+  aiken:     { center: [33.6, -82.0],   zoom: 7 },
+  inl:       { center: [43.52, -113.0], zoom: 9 },
+  oakridge:  { center: [35.92, -84.30], zoom: 10 },
+  texas:     { center: [31.0, -98.5],   zoom: 6 },
+  california:{ center: [36.5, -119.5],  zoom: 6 },
+  indiana:   { center: [39.85, -86.20], zoom: 8 },
+  world:     { center: [40, -50],       zoom: 3 }
+};
+document.querySelectorAll('.filter[data-view]').forEach(el => {
+  el.addEventListener('click', e => {
+    e.preventDefault();
+    const v = VIEWS[el.dataset.view];
+    if (v) map.flyTo(v.center, v.zoom, { duration: 0.7 });
+  });
+});
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+const searchInput = document.getElementById('search');
+searchInput.addEventListener('input', () => {
+  state.query = searchInput.value.trim().toLowerCase();
+  applyFilters();
+  if (state.query) {
+    const visible = ALL.filter(r => r.isOnMap).map(r => r.marker.getLatLng());
+    if (visible.length === 1) {
+      map.flyTo(visible[0], 8, { duration: 0.6 });
+    } else if (visible.length > 1) {
+      map.flyToBounds(L.latLngBounds(visible), { padding: [60, 60], maxZoom: 8, duration: 0.7 });
+    }
+  }
+});
+
+/* ============================================================
+   RESET BUTTON
+   ============================================================ */
+document.getElementById('reset-btn').addEventListener('click', () => {
+  Object.keys(state.layer).forEach(k => state.layer[k] = true);
+  Object.keys(state.tech).forEach(k  => state.tech[k]  = true);
+  Object.keys(state.fuel).forEach(k  => state.fuel[k]  = true);
+  Object.keys(state.form).forEach(k  => state.form[k]  = true);
+  Object.keys(state.size).forEach(k  => state.size[k]  = true);
+  state.query = '';
+  searchInput.value = '';
+  document.querySelectorAll('.filter[data-group]').forEach(el => {
+    el.classList.add('active');
+    el.querySelector('input').checked = true;
+  });
+  applyFilters();
+  map.flyTo([39.5, -98.5], 4, { duration: 0.7 });
+});
+
+
+/* ============================================================
+   STRATEGIC FILTER SHORTCUTS
+   ============================================================ */
+function setQuery(q) {
+  state.query = q;
+  searchInput.value = q;
+  applyFilters();
+  const visible = ALL.filter(r => r.isOnMap).map(r => r.marker.getLatLng());
+  if (visible.length > 1) map.flyToBounds(L.latLngBounds(visible), { padding: [60, 60], maxZoom: 7, duration: 0.7 });
+  if (visible.length === 1) map.flyTo(visible[0], 8, { duration: 0.6 });
+}
+document.querySelectorAll('.filter[data-strategic]').forEach(el => {
+  el.addEventListener('click', e => {
+    e.preventDefault();
+    const q = {
+      'fast': 'fast spectrum sodium lead natrium aurora eagl',
+      'closed-cycle': 'closed fuel cycle closed-cycle reprocessing',
+      'haleu': 'haleu triso high-assay',
+      'military': 'army air force usaf janus pele military federal base',
+      'data-center': 'google amazon data center offtake hyperscaler'
+    }[el.dataset.strategic] || '';
+    setQuery(q);
+  });
+});
+
+/* ============================================================
+   EXPORTS
+   ============================================================ */
+function visibleRows() {
+  return ALL.filter(r => r.isOnMap).map(r => {
+    const raw = r.raw || {};
+    return {
+      type: STATUS_LABEL[r.type] || r.type,
+      name: r.name,
+      design: raw.design || '',
+      capacity: r.capacity || raw.cap || raw.capacity || '',
+      location: raw.site || raw.addr || raw.loc || '',
+      coolant_family: (r.tech || []).map(k => TECH_LABEL[k] || k).join('; '),
+      size_class: (r.size || []).map(k => SIZE_LABEL[k] || k).join('; '),
+      assay: (r.assayKeys || []).map(k => ASSAY_LABEL[k] || k).join('; '),
+      fuel_form: (r.formKeys || []).map(k => FORM_LABEL[k] || k).join('; '),
+      source: raw.sourceType || DEFAULT_SOURCE.sourceType,
+      source_date: raw.sourceDate || DEFAULT_SOURCE.sourceDate,
+      confidence: raw.confidence || DEFAULT_SOURCE.confidence,
+      caveat: raw.caveat || DEFAULT_SOURCE.caveat
+    };
+  });
+}
+function downloadFile(filename, text, mime) {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+}
+function csvEscape(v) { return `"${String(v == null ? '' : v).replace(/"/g, '""')}"`; }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+document.getElementById('export-csv').addEventListener('click', () => {
+  const rows = visibleRows();
+  const headers = Object.keys(rows[0] || { type:'', name:'' });
+  const csv = [headers.join(','), ...rows.map(r => headers.map(h => csvEscape(r[h])).join(','))].join('\n');
+  downloadFile('advanced-reactor-visible-markers.csv', csv, 'text/csv;charset=utf-8');
+});
+document.getElementById('export-json').addEventListener('click', () => {
+  downloadFile('advanced-reactor-visible-markers.json', JSON.stringify(visibleRows(), null, 2), 'application/json;charset=utf-8');
+});
+document.getElementById('copy-visible').addEventListener('click', async () => {
+  const text = visibleRows().map(r => `${r.type}: ${r.name} — ${r.design} — ${r.capacity}`).join('\n');
+  try { await navigator.clipboard.writeText(text); showToast('Visible marker list copied'); }
+  catch { showToast('Copy failed; use CSV export'); }
+});
+
+/* Initial render */
+applyFilters();
+
+/* Open Aiken popup on first load */
+setTimeout(() => {
+  const focalRec = ALL.find(r => r.type === 'focal');
+  if (focalRec && focalRec.isOnMap) focalRec.marker.openPopup();
+}, 600);
+</script>
+</body>
+</html>
